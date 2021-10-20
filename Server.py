@@ -1,8 +1,11 @@
+#!/usr/bin/env python3
+
 import errno
 import socket
 from datetime import datetime
+import json
 
-default_port = "1488"
+default_port = "1337"
 debagmode = False
 
 
@@ -49,6 +52,15 @@ def init():
             print("Неправильный ввод")
 
 
+try:
+    with open('db.json', 'r', encoding='utf-8') as f:
+        reg_user = json.load(f)
+except:
+    reg_user = {}
+    with open(f'db.json', 'w', encoding='utf-8') as f:
+        json.dump(reg_user, f, ensure_ascii=False, indent=4)
+
+
 my_socket = init()
 stop_command_send = False
 while stop_command_send is False:
@@ -56,19 +68,52 @@ while stop_command_send is False:
     print_log("Начало прослушивания порта")
     conn, addr = my_socket.accept()
     print_log("Подключение клиента: " + addr[0] + ":" + str(addr[1]))
+    user = addr[0]
+    user_status = "unauthorized"
     while True:
-        data = conn.recv(1024)
-        print_log("Прием данных от клиента " + addr[0] + ":" + str(addr[1]) + " : " + data.decode())
-        if not data:
-            break
-        msg = data.decode()
-        if msg == "stop server":
-            conn.send("exit".encode())
-            stop_command_send = True
-            my_socket.close()
-            print_log("Остановка сервера 127.0.0.1")
-            break
-        conn.send((msg.upper()).encode())
-        print_log("Отправка данных клиенту" + addr[0] + ":" + str(addr[1]) + " : " + msg)
+        msg = ''
+        if user_status == "unauthorized":
+            if reg_user.get(user) is None:
+                conn.send('Вы не зарегистрированы. Зарегистрируйтесь, введя имя, пароль в формате: "Имя" "пароль"'.encode())
+                data = conn.recv(1024)
+                print_log("Прием данных от клиента " + addr[0] + ":" + str(addr[1]) + " : " + data.decode())
+                if not data:
+                    break
+                msg = data.decode()
+                print(msg)
+                reg_user[user] = {}
+                reg_user[user]["name"] = msg.split()[0]
+                reg_user[user]["password"] = msg.split()[1]
+                with open(f'db.json', 'w', encoding='utf-8') as f:
+                    json.dump(reg_user, f, ensure_ascii=False, indent=4)
+                conn.send(('Вы зарегистрировались, ' + reg_user[user]["name"] + ". Введите что вам переотправить").encode())
+                user_status = "authorized"
+            else:
+                conn.send(('Здравствуйте, ' + reg_user[user]["name"] + ". Введите ваш пароль для продолжения:").encode())
+                data = conn.recv(1024)
+                print_log("Прием данных от клиента " + addr[0] + ":" + str(addr[1]) + " : " + data.decode())
+                if not data:
+                    break
+                msg = data.decode()
+                if reg_user[user]["password"] == msg:
+                    conn.send(('Вы вошли, ' + reg_user[user]["name"] + ". Введите что вам переотправить").encode())
+                    user_status = "authorized"
+        else:
+            data = conn.recv(1024)
+            print_log("Прием данных от клиента " + addr[0] + ":" + str(addr[1]) + " : " + data.decode())
+            if not data:
+                break
+            msg = data.decode()
+            if msg == "exit":
+                conn.send("exit".encode())
+                break
+            if msg == "stop server":
+                conn.send("exit".encode())
+                stop_command_send = True
+                my_socket.close()
+                print_log("Остановка сервера 127.0.0.1")
+                break
+            conn.send((msg.upper()).encode())
+            print_log("Отправка данных клиенту" + addr[0] + ":" + str(addr[1]) + " : " + msg)
     print_log("Отключение клиента: " + addr[0] + ":" + str(addr[1]))
 

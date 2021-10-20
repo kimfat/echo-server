@@ -1,6 +1,8 @@
+#!/usr/bin/env python3
+
 import socket
 
-default_port = "1488"
+default_port = "1337"
 default_ip = "127.0.0.1"
 debagmode = False
 
@@ -50,15 +52,14 @@ sock = socket.socket()
 sock.setblocking(1)
 sock.connect((ip, port))
 print("Соединение с сервером: " + ip + ":" + str(port))
-msg = input()
-while len(msg) != 0:
-    sock.send(msg.encode())
-    print("Отправка данных серверу " + ip + ":" + str(port) + " : " + msg)
+while True:
     data = sock.recv(1024)
     print("Прием данных от сервера " + ip + ":" + str(port) + " : " + data.decode())
-    exit_check = msg.lower()
-    if data.decode() == 'exit' or exit_check == 'exit':
+    if data.decode() == 'exit':
         sock.close()
         print("Разрыв соединения с сервером: " + ip + ":" + str(port))
         break
     msg = input()
+    sock.send(msg.encode())
+    print("Отправка данных серверу " + ip + ":" + str(port) + " : " + msg)
+    exit_check = msg.lower()
