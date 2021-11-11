@@ -63,3 +63,4 @@ while True:
     sock.send(msg.encode())
     print("Отправка данных серверу " + ip + ":" + str(port) + " : " + msg)
     exit_check = msg.lower()
+

@@ -116,4 +116,3 @@ while stop_command_send is False:
             conn.send((msg.upper()).encode())
             print_log("Отправка данных клиенту" + addr[0] + ":" + str(addr[1]) + " : " + msg)
     print_log("Отключение клиента: " + addr[0] + ":" + str(addr[1]))
-
